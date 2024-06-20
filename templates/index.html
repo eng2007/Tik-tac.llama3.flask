@@ -1,0 +1,74 @@
+<!-- index.html -->
+
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Крестики-нолики</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+  <h1>Крестики-нолики</h1>
+  <table>
+    {% for row in game_field %}{% set order_index = loop.index0 %}
+      <tr>
+        {% for cell in row %}
+          <td id="cell-{{ order_index }}-{{ loop.index0 }}">{{ cell }}</td>
+        {% endfor %}
+      </tr>
+    {% endfor %}
+  </table>
+  <button id="reset-button">Сбросить игру</button>
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+  <script>
+    $(document).ready(function() {
+      var player = 'O';
+      $('td').click(function() {
+        var row = $(this).attr('id').split('-')[1];
+        var col = $(this).attr('id').split('-')[2];
+        if (player == 'O') {player = 'X'} else {player = 'O'};
+        $.ajax({
+          type: 'POST',
+          url: '/make_move',
+          data: {row: row, col: col, player: player},
+          success: function(data) {
+            if (data.result == 'ok') {
+              var game_field = data.game_field;
+              $('table tr').each(function(indextr, tr) {
+                $(tr).children('td').each(function(indextd, td) {
+                  $(td).text(game_field[indextr][indextd]);
+                });
+              });
+              $.ajax({
+                type: 'GET',
+                url: '/check_win',
+                success: function(data) {
+                  if (data.result == 'win') {
+                    alert('Победил игрок ' + data.player);
+                  }          
+                  if (data.result == 'draw') {
+                    alert('Ничья!');
+                  }
+                }
+              });
+            } else {
+              alert('Ошибка: клетка уже занята');
+            }
+          }
+        });
+      });
+
+      $('#reset-button').click(function() {
+        $.ajax({
+          type: 'GET',
+          url: '/reset',
+          success: function(data) {
+            if (data.result == 'ok') {
+              location.reload();
+            }
+          }
+        });
+      });
+    });
+  </script>
+</body>
+</html>
